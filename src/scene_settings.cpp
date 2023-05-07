@@ -418,7 +418,7 @@ void Scene_Settings::UpdateOptions() {
 			}
 			option.action();
 			options_window->Refresh();
-		}
+		} 
 	}
 }
 
