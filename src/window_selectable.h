@@ -36,6 +36,7 @@ public:
 	 */
 	void CreateContents();
 
+	int GetItemMax() const;
 	int GetIndex() const;
 	void SetIndex(int nindex);
 	int GetColumnMax() const;
@@ -107,6 +108,10 @@ protected:
 
 	int scroll_dir = 0;
 	int scroll_progress = 0;
+
+	int mouseTimeArrow;
+	int startCursorY = 0;
+	int mouseOldIndex = 0;
 };
 
 inline void Window_Selectable::SetItemMax(int value) {

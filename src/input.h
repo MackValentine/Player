@@ -327,6 +327,9 @@ namespace Input {
 
 	bool IsWaitingInput();
 	void WaitInput(bool val);
+
+	void SetUseMouse(bool b);
+	bool GetUseMouseButton();
 }
 
 #endif

@@ -70,7 +70,7 @@ void Scene_GameBrowser::vUpdate() {
 		BootGame();
 		return;
 	}
-
+	Input::SetUseMouse(false);
 	command_window->Update();
 	gamelist_window->Update();
 
