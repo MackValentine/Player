@@ -1092,7 +1092,14 @@ bool Game_Interpreter::CommandControlVariables(lcf::rpg::EventCommand const& com
 			break;
 		case 3: {
 			// Random between range
-			value = ControlVariables::Random(com.parameters[5], com.parameters[6]);
+			int32_t arg1 = com.parameters[5];
+			int32_t arg2 = com.parameters[6];
+			if (Player::IsPatchManiac() && com.parameters.size() >= 8) {
+				arg1 = ValueOrVariableBitfield(com.parameters[7], 0, arg1);
+				arg2 = ValueOrVariableBitfield(com.parameters[7], 1, arg2);
+			}
+
+			value = ControlVariables::Random(arg1, arg2);
 			break;
 		}
 		case 4: {
@@ -1990,7 +1997,7 @@ bool Game_Interpreter::CommandWait(lcf::rpg::EventCommand const& com) { // code 
 	bool maniac = Player::IsPatchManiac();
 
 	// Wait a given time
-	if (com.parameters.size() <= 1 || (!maniac && !Player::IsRPG2k3ECommands())) {
+	if (com.parameters.size() <= 1 || (!maniac && !Player::IsRPG2k3Commands())) {
 		SetupWait(com.parameters[0]);
 		return true;
 	}
@@ -2187,7 +2194,7 @@ bool Game_Interpreter::CommandChangeVehicleGraphic(lcf::rpg::EventCommand const&
 	Game_Vehicle* vehicle = Game_Map::GetVehicle(vehicle_id);
 
 	if (!vehicle) {
-		Output::Warning("ChangeVehicleGraphic: Invalid vehicle ID {}", vehicle_id);
+		Output::Warning("ChangeVehicleGraphic: Invalid vehicle ID {}", static_cast<int>(vehicle_id));
 		return true;
 	}
 
@@ -2261,7 +2268,7 @@ bool Game_Interpreter::CommandSetVehicleLocation(lcf::rpg::EventCommand const& c
 			// 0 because we adjust all vehicle IDs by +1 to match the lcf values
 			Output::Debug("SetVehicleLocation: Party referenced");
 		} else {
-			Output::Warning("SetVehicleLocation: Invalid vehicle ID {}", vehicle_id);
+			Output::Warning("SetVehicleLocation: Invalid vehicle ID {}", static_cast<int>(vehicle_id));
 			return true;
 		}
 	}
@@ -3494,7 +3501,7 @@ bool Game_Interpreter::CommandConditionalBranch(lcf::rpg::EventCommand const& co
 		Game_Vehicle* vehicle = Game_Map::GetVehicle(vehicle_id);
 
 		if (!vehicle) {
-			Output::Warning("ConditionalBranch: Invalid vehicle ID {}", vehicle_id);
+			Output::Warning("ConditionalBranch: Invalid vehicle ID {}", static_cast<int>(vehicle_id));
 			return true;
 		}
 
@@ -3551,9 +3558,7 @@ bool Game_Interpreter::CommandConditionalBranch(lcf::rpg::EventCommand const& co
 		if (Player::IsPatchManiac()) {
 			switch (com.parameters[1]) {
 				case 0:
-					// FIXME: Game was loaded in this frame
-					Output::Warning("Maniac: Condition 'Loaded' not implemented");
-					result = false;
+					result = Main_Data::game_system->IsLoadedThisFrame();
 					break;
 				case 1:
 					// Joypad is active (We always read from Controller so simply report 'true')

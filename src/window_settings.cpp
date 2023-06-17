@@ -276,10 +276,16 @@ void Window_Settings::RefreshAudio() {
 void Window_Settings::RefreshEngine() {
 	auto& cfg = Player::player_config;
 
-	// FIXME: Remove the &cfg after moving to VS2022
+	// FIXME: Binding &cfg is not needed and generates a warning but requires it
+#ifdef _MSC_VER
 	AddOption(cfg.settings_autosave, [&cfg](){ cfg.settings_autosave.Toggle(); });
 	AddOption(cfg.settings_in_title, [&cfg](){ cfg.settings_in_title.Toggle(); });
 	AddOption(cfg.settings_in_menu, [&cfg](){ cfg.settings_in_menu.Toggle(); });
+#else
+	AddOption(cfg.settings_autosave, [](){ cfg.settings_autosave.Toggle(); });
+	AddOption(cfg.settings_in_title, [](){ cfg.settings_in_title.Toggle(); });
+	AddOption(cfg.settings_in_menu, [](){ cfg.settings_in_menu.Toggle(); });
+#endif
 }
 
 void Window_Settings::RefreshLicense() {
@@ -369,9 +375,9 @@ void Window_Settings::RefreshInput() {
 
 	AddOption(MenuItem("Key/Button mapping", "Change the keybindings", ""),
 		[this]() { Push(eInputButtonCategory); });
-	AddOption(cfg.gamepad_swap_ab_and_xy, [&cfg](){ cfg.gamepad_swap_ab_and_xy.Toggle(); Input::ResetKeys(); });
-	AddOption(cfg.gamepad_swap_analog, [&cfg](){ cfg.gamepad_swap_analog.Toggle(); Input::ResetKeys(); });
-	AddOption(cfg.gamepad_swap_dpad_with_buttons, [&cfg](){ cfg.gamepad_swap_dpad_with_buttons.Toggle(); Input::ResetKeys(); });
+	AddOption(cfg.gamepad_swap_ab_and_xy, [&cfg](){ cfg.gamepad_swap_ab_and_xy.Toggle(); Input::ResetTriggerKeys(); });
+	AddOption(cfg.gamepad_swap_analog, [&cfg](){ cfg.gamepad_swap_analog.Toggle(); Input::ResetTriggerKeys(); });
+	AddOption(cfg.gamepad_swap_dpad_with_buttons, [&cfg](){ cfg.gamepad_swap_dpad_with_buttons.Toggle(); Input::ResetTriggerKeys(); });
 }
 
 void Window_Settings::RefreshButtonCategory() {
