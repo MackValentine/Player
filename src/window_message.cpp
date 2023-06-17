@@ -183,6 +183,7 @@ void Window_Message::StartMessageProcessing(PendingMessage pm) {
 	}
 
 	item_max = min(4, pending_message.GetNumChoices());
+	startCursorY = pending_message.GetChoiceStartLine();
 
 	text_index = text.data();
 
@@ -397,7 +398,117 @@ void Window_Message::Update() {
 
 	const bool was_closing = IsClosing();
 
+	if (Input::GetUseMouseButton() && IsVisible()) {
+		if (Input::IsPressed(Input::MOUSE_LEFT)) {
+			if (!number_input_window->GetActive()) {
+				Point mouseP = Input::GetMousePosition();
+				int startChoiceY = 0;
+				int maxChoiceY = 0;
+				if (pending_message.HasChoices()) {
+					startChoiceY = pending_message.GetChoiceStartLine() * 16;
+					maxChoiceY = pending_message.GetNumChoices() * 16;
+				}
+				if (!(mouseP.x >= GetX() + GetBorderX() && mouseP.x <= GetX() + GetWidth() - GetBorderX() * 2 &&
+					mouseP.y >= GetY() + GetBorderY() + startChoiceY && mouseP.y < GetY() + GetHeight() - GetBorderY() + startChoiceY - maxChoiceY)) {
+					if (index != -999 && index != -1)
+						mouseOldIndex = index;
+					index = -999;
+				}
+				else {
+					if (index != -999 && index != -1)
+						mouseOldIndex = index;
+					index = -1;
+				}
+				UpdateCursorRect();
+			}
+			else {
+
+				Point mouseP = Input::GetMousePosition();
+
+				if (!(mouseP.x >= GetX() + GetBorderX() && mouseP.x <= GetX() + GetWidth() - GetBorderX() * 2 &&
+					mouseP.y >= number_input_window->GetY() + GetBorderY() && mouseP.y < number_input_window->GetY() + GetBorderY() + number_input_window->GetItemRect(0).height)) {
+
+					if (index != -999 && index != -1)
+						mouseOldIndex = index;
+
+					index = -999;
+				}
+				else {
+
+					if (index != -999 && index != -1)
+						mouseOldIndex = index;
+					index = -999;
+
+					int new_index = (mouseP.x - GetX() - GetBorderX() - number_input_window->GetItemRect(0).x + 4) / (12) - 1;
+
+					if (new_index >= 0 && new_index < number_input_window->GetMaxDigits()) {
+
+						number_input_window->SetIndex(-999);
+						// Output::Debug("{} {} {}", new_index, number_input_window->GetIndex(), number_input_window->GetMouseOldIndex());
+
+						if (new_index != number_input_window->GetMouseOldIndex())
+							Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Cursor));
+
+						if (number_input_window->GetIndex() != -999 && number_input_window->GetIndex() != -1)
+							number_input_window->SetMouseOldIndex(number_input_window->GetIndex());
+
+						number_input_window->SetIndex(new_index);
+					}
+				}
+				UpdateCursorRect();
+
+			}
+		}
+		else if (Input::IsReleased(Input::MOUSE_LEFT) && number_input_window->GetActive())
+		{
+			index = -999;
+			InputNumber();
+		}
+		else if (pending_message.GetNumChoices() > 0)
+		{
+			if (index == -999 && !number_input_window->GetActive()) {
+				if (Input::IsTriggered(Input::DECISION) && !Input::IsReleased(Input::MOUSE_LEFT)) {
+					Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Cursor));
+					index = mouseOldIndex;
+				}
+				if (Input::IsTriggered(Input::DOWN)) {
+					Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Cursor));
+					index = mouseOldIndex;
+				}
+				if (Input::IsTriggered(Input::UP)) {
+					Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Cursor));
+					index = mouseOldIndex;
+				}
+				if (Input::IsTriggered(Input::RIGHT)) {
+					Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Cursor));
+					index = mouseOldIndex;
+				}
+				if (Input::IsTriggered(Input::LEFT)) {
+					Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Cursor));
+					index = mouseOldIndex;
+				}
+				UpdateArrows();
+				Window_Base::Update();
+				return;
+			}
+		}
+		else {
+			if (Input::IsTriggered(Input::DECISION) && !Input::IsReleased(Input::MOUSE_LEFT)) {
+				index = -1;
+			}
+		}
+
+		if (index == -999) {
+			UpdateArrows();
+			Window_Base::Update();
+			number_input_window->Update();
+			return;
+		}
+	}
+
 	Window_Selectable::Update();
+
+
 	number_input_window->Update();
 	gold_window->Update();
 
@@ -808,6 +919,26 @@ void Window_Message::InputChoice() {
 
 void Window_Message::InputNumber() {
 	number_input_window->SetVisible(true);
+
+	if (Input::IsReleased(Input::MOUSE_LEFT)) {
+		Point mouseP = Input::GetMousePosition();
+
+		int dx = number_input_window->GetMaxDigits() * 12 + 32 + 12;
+		if ((mouseP.x >= GetX() + GetBorderX() + dx && mouseP.x <= GetX() + GetBorderX() + dx + 14 &&
+			mouseP.y >= number_input_window->GetY() + GetBorderY() && mouseP.y < number_input_window->GetY() + GetBorderY() + number_input_window->GetItemRect(0).height)) {
+
+			number_input_window->SetIndex(-1);
+			Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Decision));
+			Main_Data::game_variables->Set(pending_message.GetNumberInputVariable(), number_input_window->GetNumber());
+			Game_Map::SetNeedRefresh(true);
+			number_input_window->SetNumber(0);
+			number_input_window->SetActive(false);
+
+			index = -1;
+		}
+
+		return;
+	}
 	if (Input::IsTriggered(Input::DECISION)) {
 		Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Decision));
 		Main_Data::game_variables->Set(pending_message.GetNumberInputVariable(), number_input_window->GetNumber());
