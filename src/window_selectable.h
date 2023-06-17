@@ -93,6 +93,9 @@ public:
 	 */
 	void SetMenuItemHeight(int height);
 
+	void SetMouseOldIndex(int i);
+	int GetMouseOldIndex();
+
 protected:
 	void UpdateArrows();
 
