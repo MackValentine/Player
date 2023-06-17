@@ -616,6 +616,8 @@ bool Game_Interpreter::ExecuteCommand() {
 	auto& frame = GetFrame();
 	const auto& com = frame.commands[frame.current_command];
 
+	// Output::Debug("Event code : {}", com.code);
+
 	switch (static_cast<Cmd>(com.code)) {
 		case Cmd::ShowMessage:
 			return CommandShowMessage(com);
@@ -818,6 +820,10 @@ bool Game_Interpreter::ExecuteCommand() {
 			return CommandManiacSetGameOption(com);
 		case Cmd::Maniac_CallCommand:
 			return CommandManiacCallCommand(com);
+		case Cmd::Mack_Pathfinder:
+			return CommandSearchPath(com);
+		case Cmd::Mack_ActivateEvent:
+			return CommandActivateEventAt(com);
 		default:
 			return true;
 	}
@@ -4679,4 +4685,212 @@ bool Game_Interpreter::ManiacCheckContinueLoop(int val, int val2, int type, int 
 		default:
 			return false;
 	}
+}
+
+
+bool Game_Interpreter::CommandSearchPath(lcf::rpg::EventCommand const& com) {
+
+	int eventID, destX, destY;
+	bool passableDestination = true;
+
+	if (com.string == "false")
+		passableDestination = false;
+
+	eventID = com.parameters[1];
+
+	destX = com.parameters[3];
+	destY = com.parameters[5];
+
+	if (com.parameters[0] == 1)
+		eventID = Main_Data::game_variables->Get(eventID);
+	if (com.parameters[2] == 1)
+		destX = Main_Data::game_variables->Get(destX);
+	if (com.parameters[4] == 1)
+		destY = Main_Data::game_variables->Get(destY);
+
+
+	Game_Character* event;
+	if (eventID == 0)
+		event = Main_Data::game_player.get();
+	else
+		event = GetCharacter(eventID);
+
+	NoeudA start = NoeudA(event->GetX(), event->GetY(), 0, -1);
+	if (start.x == destX && start.y == destY)
+		return true;
+
+	//Output::Debug("Pathfinding : {} {} {} {} {}", eventID, destX, destY, start.x, start.y);
+
+	std::vector<NoeudA> list;
+	std::vector<NoeudA> closedList;
+	std::vector<NoeudA> listMove;
+
+	list.push_back(start);
+	int id = 0;
+	int idd = 0;
+
+	while (!list.empty()) {
+		if (id >= list.size()) {
+			//Output::Debug("Give up");
+			//return true;
+		}
+
+		NoeudA n = pop_front(list);//list[id];
+		closedList.push_back(n);
+
+		if (n.x == destX && n.y == destY) {
+
+			//Output::Debug("Chemin :");
+			NoeudA* node = &n;
+			while (node != nullptr) {
+				//Output::Debug("N {} {} {}", node->x, node->y, node->parentID);
+
+				NoeudA nodeF = NoeudA(node->x, node->y, 0, node->direction);
+				nodeF.parentX = n.x;
+				nodeF.parentY = n.y;
+
+				listMove.push_back(nodeF);
+				int nid = node->parentID;
+				node = nullptr;
+				for (NoeudA na : closedList) {
+					if (na.id == nid) {
+						node = &na;
+						break;
+					}
+				}
+			}
+
+			std::reverse(listMove.rbegin(), listMove.rend());
+
+			lcf::rpg::MoveRoute route;
+			// route.skippable = true;
+			route.repeat = false;
+
+			if (!event->MakeWay(n.parentX, n.parentY, n.x, n.y)) {
+				listMove.pop_back();
+			}
+
+			if (listMove.size() <= 1 && n.direction <= 3) {
+				listMove.clear();
+				n.direction += 12;
+				listMove.push_back(n);
+			}
+
+			for (NoeudA node2 : listMove) {
+				if (node2.direction >= 0) {
+					lcf::rpg::MoveCommand cmd;
+					cmd.command_id = node2.direction;
+					route.move_commands.push_back(cmd);
+
+					//Output::Debug("NF {} {} {}", node2.x, node2.y, cmd.command_id);
+				}
+			}
+
+			lcf::rpg::MoveCommand cmd;
+			cmd.command_id = 23;
+			route.move_commands.push_back(cmd);
+
+			event->ForceMoveRoute(route, 8);
+
+			return true;
+
+		}
+		else {
+
+			std::vector<NoeudA> neighbour;
+			NoeudA nn = NoeudA(n.x + 1, n.y, n.cout + 1, 1); // Right
+			neighbour.push_back(nn);
+			nn = NoeudA(n.x, n.y - 1, n.cout + 1, 0); // Up
+			neighbour.push_back(nn);
+			nn = NoeudA(n.x - 1, n.y, n.cout + 1, 3); // left
+			neighbour.push_back(nn);
+			nn = NoeudA(n.x, n.y + 1, n.cout + 1, 2); // Down
+			neighbour.push_back(nn);
+
+			nn = NoeudA(n.x - 1, n.y + 1, n.cout + 1, 6); // Down Left
+			neighbour.push_back(nn);
+			nn = NoeudA(n.x + 1, n.y - 1, n.cout + 1, 4); // Up Right
+			neighbour.push_back(nn);
+			nn = NoeudA(n.x - 1, n.y - 1, n.cout + 1, 7); // Up Left
+			neighbour.push_back(nn);
+			nn = NoeudA(n.x + 1, n.y + 1, n.cout + 1, 5); // Down Right
+			neighbour.push_back(nn);
+
+
+			for (NoeudA a : neighbour) {
+				idd++;
+				a.parentX = n.x;
+				a.parentY = n.y;
+				a.id = idd;
+				a.parentID = n.id;
+				int i = vectorContains(list, a);
+				//if (!((vectorContains(closedList, a) != -1) || (i != -1 && i < list.size() && list[i].cout < a.cout))) {
+				//if (!((i != -1 && i < list.size() && list[i].cout < a.cout))) {
+				if (i < 0) {
+					if (event->MakeWay(n.x, n.y, a.x, a.y) || (passableDestination && a.x == destX && a.y == destY)) {
+						//Output::Debug(" {} {} {} {}", a.x, a.y, a.id, a.direction);
+						if (a.direction == 4) {
+							if (event->MakeWay(n.x, n.y, n.x + 1, n.y) || event->MakeWay(n.x, n.y, n.x, n.y - 1))
+								list.push_back(a);
+						}
+						else if (a.direction == 5) {
+							if (event->MakeWay(n.x, n.y, n.x + 1, n.y) || event->MakeWay(n.x, n.y, n.x, n.y + 1))
+								list.push_back(a);
+						}
+						else if (a.direction == 6) {
+							if (event->MakeWay(n.x, n.y, n.x - 1, n.y) || event->MakeWay(n.x, n.y, n.x, n.y + 1))
+								list.push_back(a);
+						}
+						else if (a.direction == 7) {
+							if (event->MakeWay(n.x, n.y, n.x - 1, n.y) || event->MakeWay(n.x, n.y, n.x, n.y - 1))
+								list.push_back(a);
+						}
+						else
+							list.push_back(a);
+					}
+				}
+				//closedList.push_back(a);
+			}
+
+		}
+		id++;
+	}
+
+	return true;
+}
+
+int Game_Interpreter::vectorContains(std::vector<NoeudA> v, NoeudA n) {
+	int id = -1;
+	for (NoeudA na : v) {
+		if (na.x == n.x && na.y == n.y) {
+			id = na.id;
+			break;
+		}
+	}
+	return id;
+}
+
+Game_Interpreter::NoeudA Game_Interpreter::pop_front(std::vector<NoeudA>& vec)
+{
+	assert(!vec.empty());
+	NoeudA a = vec[0];
+	vec.erase(vec.begin());
+	return a;
+}
+
+bool Game_Interpreter::CommandActivateEventAt(lcf::rpg::EventCommand const& com) {
+
+	int x = com.parameters[1];
+	int y = com.parameters[3];
+
+	if (com.parameters[0] == 1)
+		x = Main_Data::game_variables->Get(x);
+	if (com.parameters[2] == 1)
+		y = Main_Data::game_variables->Get(y);
+
+	// Output::Debug("ActiveEvent : {} {}", x, y);
+
+	bool b = Main_Data::game_player->ActivateEventAt(x, y);
+
+	return true;
 }
