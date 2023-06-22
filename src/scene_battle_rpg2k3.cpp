@@ -1301,7 +1301,7 @@ Scene_Battle_Rpg2k3::SceneActionReturn Scene_Battle_Rpg2k3::ProcessSceneActionAc
 			return SceneActionReturn::eWaitTillNextFrame;
 		}
 
-		if (status_window->GetActive() && status_window->GetIndex() >= 0) {
+		if (status_window->GetActive() && status_window->GetIndex() >= 0 && !status_window->mouseOutside) {
 			if (Input::IsTriggered(Input::DECISION)) {
 				command_window->SetIndex(0);
 				SetState(State_SelectCommand);
@@ -1584,7 +1584,7 @@ Scene_Battle_Rpg2k3::SceneActionReturn Scene_Battle_Rpg2k3::ProcessSceneActionEn
 	}
 
 	if (scene_action_substate == eWaitInput) {
-		if (Input::IsTriggered(Input::DECISION)) {
+		if (Input::IsTriggered(Input::DECISION) && target_window->GetIndex() >= 0) {
 			auto* actor = active_actor;
 			// active_actor gets reset after the next call, so save it.
 			auto* enemy = EnemySelected();
@@ -1635,7 +1635,7 @@ Scene_Battle_Rpg2k3::SceneActionReturn Scene_Battle_Rpg2k3::ProcessSceneActionAl
 	}
 
 	if (scene_action_substate == eWaitInput) {
-		if (Input::IsTriggered(Input::DECISION)) {
+		if (Input::IsTriggered(Input::DECISION) && !status_window->mouseOutside) {
 			AllySelected();
 			return SceneActionReturn::eWaitTillNextFrame;
 		}
