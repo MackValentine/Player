@@ -72,6 +72,9 @@ public:
 	void vGetConfig(Game_ConfigVideo& cfg) const override;
 	Rect GetWindowMetrics() const override;
 
+	void ChangeCursor(int curs_type) override;
+	void Load_Cursor(std::string s, int curs_type) override;
+
 #ifdef SUPPORT_AUDIO
 	AudioInterface& GetAudio() override;
 #endif
@@ -144,6 +147,9 @@ private:
 	uint32_t texture_format = SDL_PIXELFORMAT_UNKNOWN;
 
 	std::unique_ptr<AudioInterface> audio_;
+
+	SDL_Cursor* cursorHand;
+	SDL_Cursor* cursorArrow;
 };
 
 #endif
