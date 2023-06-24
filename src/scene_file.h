@@ -78,6 +78,9 @@ protected:
 	int latest_slot = 0;
 
 	int arrow_frame = 0;
+
+	int oldIndex = 0;
+	bool disabledByMouse = false;
 };
 
 #endif
