@@ -230,7 +230,7 @@ void Scene_Shop::UpdateCommandSelection() {
 	if (Input::IsTriggered(Input::CANCEL)) {
 		Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Cancel));
 		Scene::Pop();
-	} else if (Input::IsTriggered(Input::DECISION)) {
+	} else if (Input::IsTriggered(Input::DECISION) && shop_window->GetIndex() >= 0) {
 		switch (shop_window->GetChoice()) {
 			case Buy:
 			case Sell:
@@ -244,8 +244,14 @@ void Scene_Shop::UpdateCommandSelection() {
 }
 
 void Scene_Shop::UpdateBuySelection() {
-	status_window->SetItemId(buy_window->GetItemId());
-	party_window->SetItemId(buy_window->GetItemId());
+	if (buy_window->GetIndex() >= 0) {
+		status_window->SetItemId(buy_window->GetItemId());
+		party_window->SetItemId(buy_window->GetItemId());
+	}
+	else {
+		status_window->SetItemId(-1);
+		party_window->SetItemId(-1);
+	}
 
 	if (Input::IsTriggered(Input::CANCEL)) {
 		Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Cancel));
@@ -254,7 +260,7 @@ void Scene_Shop::UpdateBuySelection() {
 		} else {
 			Scene::Pop();
 		}
-	} else if (Input::IsTriggered(Input::DECISION)) {
+	} else if (Input::IsTriggered(Input::DECISION) && buy_window->GetIndex() >= 0) {
 		int item_id = buy_window->GetItemId();
 
 		// checks the money and number of items possessed before buy
@@ -286,7 +292,7 @@ void Scene_Shop::UpdateSellSelection() {
 		} else {
 			Scene::Pop();
 		}
-	} else if (Input::IsTriggered(Input::DECISION)) {
+	} else if (Input::IsTriggered(Input::DECISION) && sell_window->GetIndex() >= 0) {
 		const lcf::rpg::Item* item = sell_window->GetItem();
 		int item_id = (item != nullptr) ? item->ID : 0;
 		status_window->SetItemId(item_id);
@@ -296,9 +302,11 @@ void Scene_Shop::UpdateSellSelection() {
 			Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Decision));
 			number_window->SetData(item->ID, Main_Data::game_party->GetItemCount(item->ID), item->price / 2);
 			SetMode(SellHowMany);
-		} else {
+		}
+		else {
 			Main_Data::game_system->SePlay(Main_Data::game_system->GetSystemSE(Main_Data::game_system->SFX_Buzzer));
 		}
+		
 	}
 }
 
@@ -311,7 +319,7 @@ void Scene_Shop::UpdateNumberInput() {
 		case Sell:
 			SetMode(Sell); break;
 		}
-	} else if (Input::IsTriggered(Input::DECISION)) {
+	} else if (Input::IsTriggered(Input::DECISION) && !number_window->disabledByMouse) {
 		int item_id;
 		switch (shop_window->GetChoice()) {
 		case Buy:
