@@ -767,11 +767,15 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
 endif()
 
 # Endianess check
-if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.20)
+	if (CMAKE_CXX_BYTE_ORDER STREQUAL "BIG_ENDIAN")
+		target_compile_definitions(${PROJECT_NAME} PRIVATE WORDS_BIGENDIAN=1)
+	endif()
+else()
 	include(TestBigEndian)
 	test_big_endian(WORDS_BIGENDIAN)
 	if(WORDS_BIGENDIAN)
-		target_compile_definitions(${PROJECT_NAME} PUBLIC WORDS_BIGENDIAN=1)
+		target_compile_definitions(${PROJECT_NAME} PRIVATE WORDS_BIGENDIAN=1)
 	endif()
 endif()
 
@@ -997,10 +1001,10 @@ if(${PLAYER_AUDIO_BACKEND} MATCHES "^(SDL2|SDL1|libretro|psvita|3ds|switch|wii|a
 	endif()
 
 	# opusfile
-	player_find_package(NAME Opusfile
+	player_find_package(NAME OpusFile
 		CONDITION PLAYER_WITH_OPUS
 		DEFINITION HAVE_OPUS
-		TARGET Opusfile::Opusfile)
+		TARGET OpusFile::opusfile)
 
 	# wildmidi
 	player_find_package(NAME WildMidi
@@ -1490,7 +1494,7 @@ if(${PLAYER_AUDIO_BACKEND} MATCHES "^(SDL2|SDL1|libretro|psvita|3ds|switch|wii)$
 		message(STATUS "MOD playback: None")
 	endif()
 
-	if(TARGET Opusfile::Opusfile)
+	if(TARGET OpusFile::opusfile)
 		message(STATUS "Opus playback: opusfile")
 	else()
 		message(STATUS "Opus playback: None")
